@@ -538,7 +538,7 @@ $addEntraIDUserToEntraIDGroupScript = @"
 <# Then use a single-quoted here-string, where variables are interpreted literally and reproduced exactly #> 
 $addEntraIDUserToEntraIDGroupScript = $addEntraIDUserToEntraIDGroupScript + @'
 $entraIDUserCorrelationField = 'UserPrincipalName'
-$entraIDUserCorrelationValue = $request.requestedFor.userName
+$entraIDUserCorrelationValue = $requestedFor.userName
 
 # Global variables
 # Outcommented as these are set from Global Variables
@@ -858,7 +858,7 @@ $removeEntraIDUserFromEntraIDGroupScript = @"
 <# Then use a single-quoted here-string, where variables are interpreted literally and reproduced exactly #> 
 $removeEntraIDUserFromEntraIDGroupScript = $removeEntraIDUserFromEntraIDGroupScript + @'
 $entraIDUserCorrelationField = 'UserPrincipalName'
-$entraIDUserCorrelationValue = $request.requestedFor.userName
+$entraIDUserCorrelationValue = $requestedFor.userName
 
 # Global variables
 # Outcommented as these are set from Global Variables
