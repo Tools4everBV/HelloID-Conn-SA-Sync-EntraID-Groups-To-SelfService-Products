@@ -1636,14 +1636,19 @@ try {
     }
 
     # Get Entra ID groups
-    $actionMessage = "querying Entra ID groups that match filter [$entraIDGroupsSearchFilter] and retrieving properties [$($mailboxPropertiesToRetrieve -join ", ")]"
+    $actionMessage = "querying Entra ID groups that match filter [$entraIDGroupsSearchFilter] and retrieving properties [$($entraIDGroupPropertiesToRetrieve -join ", ")]"
     $m365GroupFilter = "groupTypes/any(c:c+eq+'Unified')"
     $securityGroupFilter = "NOT(groupTypes/any(c:c+eq+'DynamicMembership')) and onPremisesSyncEnabled eq null and mailEnabled eq false and securityEnabled eq true"
-    $managableGroupsFilter = "`$filter=($m365GroupFilter or $securityGroupFilter)"
+    $managableGroupsFilter = "($m365GroupFilter or $securityGroupFilter)"
+    
+    # Add additional filter if specified
+    if (-not [string]::IsNullOrEmpty($entraIDGroupsSearchFilter)) {
+        $managableGroupsFilter = "$managableGroupsFilter and $entraIDGroupsSearchFilter"
+    }
+    
     $select = "`$select=$($entraIDGroupPropertiesToRetrieve -join ",")"
     $entraIDQuerySplatParams = @{
-
-        Uri         = "$($MSGraphBaseUri)/v1.0/groups?$managableGroupsFilter and $entraIDGroupsSearchFilter&$select&`$top=999&`$count=true"
+        Uri         = "$($MSGraphBaseUri)/v1.0/groups?`$filter=$managableGroupsFilter&$select&`$top=999&`$count=true"
         Headers     = $entraIDHeaders
         Method      = 'GET'
         ErrorAction = 'Stop'
