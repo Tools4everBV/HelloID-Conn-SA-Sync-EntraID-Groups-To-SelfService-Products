@@ -1528,7 +1528,7 @@ if ($resourceOwnerMode -eq "Calculated") {
 
 # Entra ID actions
 try {
-    Write-StatusMessage -Event Information -Message "------[Entra ID-----------"
+    Write-StatusMessage -Event Information -Message "-----------[Entra ID]-----------"
 
     # Convert base64 certificate string to certificate object
     $actionMessage = "converting base64 certificate string to certificate object"
