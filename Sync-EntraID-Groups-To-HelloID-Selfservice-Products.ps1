@@ -1587,7 +1587,7 @@ try {
             [void]$entraIdGroups.Add($getEntraIDGroupsResponse.value)
         }
     }
-    Write-StatusMessage -Event Success -Message "Successfully queried Entra ID groups that match filter [$entraIDGroupsSearchFilter]. Result count: $(($sourceObjectsInScope | Measure-Object).Count)"
+    Write-StatusMessage -Event Success -Message "Successfully queried Entra ID groups that match filter [$entraIDGroupsSearchFilter]. Result count: $(($entraIdGroups | Measure-Object).Count)"
 
     # Build list of source objects in scope based on query results (to use in further actions)
     $sourceObjectsInScope = [System.Collections.Generic.List[Object]]::New()
@@ -1875,6 +1875,23 @@ try {
         }
         $productConfig = New-HelloIDProductConfiguration @newProductConfigSplatParams
         
+        # Define agent pool to use for product
+        $productAgentPoolId = $null
+        if (-not[String]::IsNullOrEmpty($productConfig.AgentPool)) {
+            $agentPool = $helloIDAgentPoolsGrouped["$($productConfig.AgentPool)"]
+            if ($null -eq $agentPool) {
+                $errorMessage = "No agent pool found with name [$($productConfig.AgentPool)]. Please check your configuration and ensure the specified agent pool exists in HelloID."
+                Write-StatusMessage -Event "Error" -Message $errorMessage
+                Write-SummaryMessage -Event "Failed" -Message $errorMessage
+                exit
+            }
+            $productAgentPoolId = $helloIDAgentPoolsGrouped["$($productConfig.AgentPool)"].agentPoolGUID
+        }
+        else {
+            $productAgentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
+        }
+
+
         # Calculate product code to check if product already exists
         $calculatedProductCode = $productConfig.Code.Replace("-", "")
         $productAlreadyExists = $calculatedProductCode -in $helloIDSelfServiceProductsInScope.code
@@ -1975,7 +1992,7 @@ try {
         #region Define On Request actions
         $onRequestActions = [System.Collections.Generic.list[object]]@()
         $productConfig.onRequest | ForEach-Object {
-            $agentPoolId = $null
+            $actionAgentPoolId = $null
             if (-not[String]::IsNullOrEmpty($_.agentPoolName)) {
                 $agentPool = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"]
                 if ($null -eq $agentPool) {
@@ -1984,17 +2001,17 @@ try {
                     Write-SummaryMessage -Event "Failed" -Message $errorMessage
                     exit
                 }
-                $agentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
+                $actionAgentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
             }
             else {
-                $agentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
+                $actionAgentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
             }
 
             [void]$onRequestActions.Add([PSCustomObject]@{
                     id          = "" # supplying an id when creating a product action is not supported. You have to leave the 'id' property empty or leave the property out alltogether when creating a new product action
                     name        = $_.name
                     script      = Get-Variable -Name $_.scriptVariableName -ValueOnly
-                    agentPoolId = $agentPoolId
+                    agentPoolId = $actionAgentPoolId
                     runInCloud  = $_.runInCloud
                 })
         }
@@ -2003,7 +2020,7 @@ try {
         #region Define On Approve actions
         $onApproveActions = [System.Collections.Generic.list[object]]@()
         $productConfig.onApprove | ForEach-Object {
-            $agentPoolId = $null
+            $actionAgentPoolId = $null
             if (-not[String]::IsNullOrEmpty($_.agentPoolName)) {
                 $agentPool = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"]
                 if ($null -eq $agentPool) {
@@ -2012,17 +2029,17 @@ try {
                     Write-SummaryMessage -Event "Failed" -Message $errorMessage
                     exit
                 }
-                $agentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
+                $actionAgentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
             }
             else {
-                $agentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
+                $actionAgentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
             }
 
             [void]$onApproveActions.Add([PSCustomObject]@{
                     id          = "" # supplying an id when creating a product action is not supported. You have to leave the 'id' property empty or leave the property out alltogether when creating a new product action
                     name        = $_.name
                     script      = Get-Variable -Name $_.scriptVariableName -ValueOnly
-                    agentPoolId = $agentPoolId
+                    agentPoolId = $actionAgentPoolId
                     runInCloud  = $_.runInCloud
                 })
         }
@@ -2031,7 +2048,7 @@ try {
         #region Define On Deny actions
         $onDenyActions = [System.Collections.Generic.list[object]]@()
         $productConfig.onDeny | ForEach-Object {
-            $agentPoolId = $null
+            $actionAgentPoolId = $null
             if (-not[String]::IsNullOrEmpty($_.agentPoolName)) {
                 $agentPool = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"]
                 if ($null -eq $agentPool) {
@@ -2040,17 +2057,17 @@ try {
                     Write-SummaryMessage -Event "Failed" -Message $errorMessage
                     exit
                 }
-                $agentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
+                $actionAgentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
             }
             else {
-                $agentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
+                $actionAgentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
             }
 
             [void]$onDenyActions.Add([PSCustomObject]@{
                     id          = "" # supplying an id when creating a product action is not supported. You have to leave the 'id' property empty or leave the property out alltogether when creating a new product action
                     name        = $_.name
                     script      = Get-Variable -Name $_.scriptVariableName -ValueOnly
-                    agentPoolId = $agentPoolId
+                    agentPoolId = $actionAgentPoolId
                     runInCloud  = $_.runInCloud
                 })
         }
@@ -2059,7 +2076,7 @@ try {
         #region Define On Return actions
         $onReturnActions = [System.Collections.Generic.list[object]]@()
         $productConfig.onReturn | ForEach-Object {
-            $agentPoolId = $null
+            $actionAgentPoolId = $null
             if (-not[String]::IsNullOrEmpty($_.agentPoolName)) {
                 $agentPool = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"]
                 if ($null -eq $agentPool) {
@@ -2068,17 +2085,17 @@ try {
                     Write-SummaryMessage -Event "Failed" -Message $errorMessage
                     exit
                 }
-                $agentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
+                $actionAgentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
             }
             else {
-                $agentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
+                $actionAgentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
             }
 
             [void]$onReturnActions.Add([PSCustomObject]@{
                     id          = "" # supplying an id when creating a product action is not supported. You have to leave the 'id' property empty or leave the property out alltogether when creating a new product action
                     name        = $_.name
                     script      = Get-Variable -Name $_.scriptVariableName -ValueOnly
-                    agentPoolId = $agentPoolId
+                    agentPoolId = $actionAgentPoolId
                     runInCloud  = $_.runInCloud
                 })
         }
@@ -2087,7 +2104,7 @@ try {
         #region Define On Withdrawn actions
         $onWithdrawnActions = [System.Collections.Generic.list[object]]@()
         $productConfig.onWithdrawn | ForEach-Object {
-            $agentPoolId = $null
+            $actionAgentPoolId = $null
             if (-not[String]::IsNullOrEmpty($_.agentPoolName)) {
                 $agentPool = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"]
                 if ($null -eq $agentPool) {
@@ -2096,17 +2113,17 @@ try {
                     Write-SummaryMessage -Event "Failed" -Message $errorMessage
                     exit
                 }
-                $agentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
+                $actionAgentPoolId = $helloIDAgentPoolsGrouped["$($_.agentPoolName)"].agentPoolGUID
             }
             else {
-                $agentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
+                $actionAgentPoolId = "$($defaultHelloIDAgentPool.agentPoolGUID)" # Use default agent pool if not specified
             }
 
             [void]$onWithdrawnActions.Add([PSCustomObject]@{
                     id          = "" # supplying an id when creating a product action is not supported. You have to leave the 'id' property empty or leave the property out alltogether when creating a new product action
                     name        = $_.name
                     script      = Get-Variable -Name $_.scriptVariableName -ValueOnly
-                    agentPoolId = $agentPoolId
+                    agentPoolId = $actionAgentPoolId
                     runInCloud  = $_.runInCloud
                 })
         }
@@ -2137,8 +2154,9 @@ try {
             }
         }
         #endregion Define Access Groups
-        $actionMessage = "building product object for HelloID Self service Product [$($productConfig.Name)]"
+
         # Build product object directly
+        $actionMessage = "building product object for HelloID Self service Product [$($productConfig.Name)]"
         $productObject = [PSCustomObject]@{
             # General Properties
             sourceIdentifier           = $productConfig.SourceIdentifier
@@ -2195,7 +2213,7 @@ try {
             
             # Agent Pool
             agentPool                  = [PSCustomObject]@{
-                id = "$($helloIDAgentPoolsInScope.agentPoolGUID)"
+                id = "$($productAgentPoolId)"
             }
             
             # Lifecycle
@@ -3066,26 +3084,28 @@ try {
                                     else {
                                         # New action - add without id (if $addMissingProductAction is true)
                                         if ($addMissingProductAction -eq $true) {
-                                            # Get agent pool info for new action
-                                            $agentPoolId = if ($null -ne $helloIDAgentPoolsInScope.agentPoolGUID) { 
-                                                $helloIDAgentPoolsInScope.agentPoolGUID 
+                                            # Get action definition from the configured product object (which has correct agent pool ID and runInCloud)
+                                            $configuredAction = $existingProduct.$actionType | Where-Object { $_.name -eq $actionName } | Select-Object -First 1
+                                            
+                                            if ($null -ne $configuredAction) {
+                                                $newAction = [PSCustomObject]@{
+                                                    id          = ""
+                                                    name        = $actionName
+                                                    script      = $newScriptContent
+                                                    agentPoolId = $configuredAction.agentPoolId
+                                                    runInCloud  = $configuredAction.runInCloud
+                                                }
+                                                [void]$updatedActions.Add($newAction)
+                                                [void]$addedActionsList.Add("$actionType.$actionName")
+                                            
+                                                if ($verboseLogging -eq $true) {
+                                                    Write-Verbose "Action [$actionName] is new - will add with agent pool [$($configuredAction.agentPoolId)] and runInCloud [$($configuredAction.runInCloud)]"
+                                                }
                                             }
-                                            else { 
-                                                $matchingCurrentAction.agentPoolId 
-                                            }
-                                        
-                                            $newAction = [PSCustomObject]@{
-                                                id          = ""
-                                                name        = $actionName
-                                                script      = $newScriptContent
-                                                agentPoolId = $agentPoolId
-                                                runInCloud  = $false
-                                            }
-                                            [void]$updatedActions.Add($newAction)
-                                            [void]$addedActionsList.Add("$actionType.$actionName")
-                                        
-                                            if ($verboseLogging -eq $true) {
-                                                Write-Verbose "Action [$actionName] is new - will add"
+                                            else {
+                                                if ($verboseLogging -eq $true) {
+                                                    Write-Verbose "Action [$actionName] not found in configured product - skipping"
+                                                }
                                             }
                                         }
                                         else {
