@@ -100,9 +100,10 @@ $entraIDGroupPropertiesToRetrieve = @(
 )
 
 # Filter which groups to sync using Microsoft Graph search filter (optional)
+# $search is not supported by default. Use $filter options
 # Examples:
 # - All groups: $null
-# - By displayName: "`$search=`"displayName:department_`""
+# - By displayName: "startsWith(displayName,'department_')"
 # - Only groups with description: Custom filtering in code (see script below)
 # Note: Only displayName and description support the search filter
 # Reference: https://learn.microsoft.com/en-us/graph/search-query-parameter?tabs=http#using-search-on-directory-object-collections
@@ -294,7 +295,7 @@ function New-HelloIDProductConfiguration {
     
         # Has Time Limit - Whether products expire after a certain duration
         # - $false: Products remain active until manually returned (recommended)
-        # - $true: Products automatically expire after OwnershipMaxDuration days
+        # - $true: Products automatically expire after OwnershipMaxDuration seconds
         HasTimeLimit               = $false
     
         # Manager Can Override Duration - Whether managers can change the expiration date
@@ -310,10 +311,10 @@ function New-HelloIDProductConfiguration {
         # Only applies when HasTimeLimit = $true
         LimitType                  = "Maximum"
     
-        # Ownership Max Duration - Maximum number of days a product can be owned
+        # Ownership Max Duration - Maximum number of seconds a product can be owned
         # Only applies when HasTimeLimit = $true
-        # Common values: 90 (3 months), 365 (1 year), 3650 (10 years)
-        OwnershipMaxDuration       = 365
+        # Common values: 7776000 (90 days), 31536000 (365 days), 315360000 (10 years)
+        OwnershipMaxDuration       = 31536000
     
         # ===== AGENT POOL =====
         # Which HelloID agent pool executes the product actions
@@ -532,7 +533,7 @@ $actionsToUpdate = @{
 <# First use a double-quoted here-string, where variables are replaced by their values here string (to be able to use a variable) #>
 $addEntraIDUserToEntraIDGroupScript = @"
 `$entraIDGroupCorrelationField = 'id'
-`$entraIDGroupCorrelationValue = [Guid]::New((`$product.code.replace("$ProductSkuPrefix","")))
+`$entraIDGroupCorrelationValue = [Guid]::New((`$product.code.replace("$productIdentifierPrefix","")))
 
 "@
 <# Then use a single-quoted here-string, where variables are interpreted literally and reproduced exactly #> 
@@ -542,10 +543,10 @@ $entraIDUserCorrelationValue = $requestedFor.userName
 
 # Global variables
 # Outcommented as these are set from Global Variables
-$EntraIdTenantId = $EntraTenantId
-$EntraIdAppId = $EntraAppID
-$EntraIdCertificateBase64String = $EntraCertificateBase64String
-$EntraIdCertificatePassword = $EntraCertificatePassword
+# $EntraIdTenantId = "" # Set from Global Variable
+# $EntraIdAppId = "" # Set from Global Variable
+# $EntraIdCertificateBase64String = "" # Set from Global Variable
+# $EntraIdCertificatePassword = "" # Set from Global Variable
 
 # Enable TLS1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
@@ -852,7 +853,7 @@ catch {
 <# First use a double-quoted here-string, where variables are replaced by their values here string (to be able to use a variable) #>
 $removeEntraIDUserFromEntraIDGroupScript = @"
 `$entraIDGroupCorrelationField = 'id'
-`$entraIDGroupCorrelationValue = [Guid]::New((`$product.code.replace("$ProductSkuPrefix","")))
+`$entraIDGroupCorrelationValue = [Guid]::New((`$product.code.replace("$productIdentifierPrefix","")))
 
 "@
 <# Then use a single-quoted here-string, where variables are interpreted literally and reproduced exactly #> 
@@ -862,10 +863,10 @@ $entraIDUserCorrelationValue = $requestedFor.userName
 
 # Global variables
 # Outcommented as these are set from Global Variables
-$EntraIdTenantId = $EntraTenantId
-$EntraIdAppId = $EntraAppID
-$EntraIdCertificateBase64String = $EntraCertificateBase64String
-$EntraIdCertificatePassword = $EntraCertificatePassword
+# $EntraIdTenantId = "" # Set from Global Variable
+# $EntraIdAppId = "" # Set from Global Variable
+# $EntraIdCertificateBase64String = "" # Set from Global Variable
+# $EntraIdCertificatePassword = "" # Set from Global Variable
 
 # Enable TLS1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
