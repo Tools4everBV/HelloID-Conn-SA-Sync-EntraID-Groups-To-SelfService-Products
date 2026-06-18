@@ -373,7 +373,7 @@ function New-HelloIDProductConfiguration {
             # [PSCustomObject]@{
             #     name               = "ActionName"
             #     scriptVariableName = "actionScriptVariableName" # use variable name as string reference to avoid cluttering configuration with script content
-            #     runInCloud         = $false
+            #     runInCloud         = $true
             #     agentPoolName      = "" # If left empty, uses default agent pool
             # }
         )
@@ -383,7 +383,7 @@ function New-HelloIDProductConfiguration {
             [PSCustomObject]@{
                 name               = "Add-EntraIDUserToEntraIDGroup"
                 scriptVariableName = "addEntraIDUserToEntraIDGroupScript" # use variable name as string reference to avoid cluttering configuration with script content
-                runInCloud         = $false
+                runInCloud         = $true
                 agentPoolName      = "" # If left empty, uses default agent pool
             }
         )
@@ -393,7 +393,7 @@ function New-HelloIDProductConfiguration {
             # [PSCustomObject]@{
             #     name               = "ActionName"
             #     scriptVariableName = "actionScriptVariableName" # use variable name as string reference to avoid cluttering configuration with script content
-            #     runInCloud         = $false
+            #     runInCloud         = $true
             #     agentPoolName      = "" # If left empty, uses default agent pool
             # }
         )
@@ -403,7 +403,7 @@ function New-HelloIDProductConfiguration {
             [PSCustomObject]@{
                 name               = "Remove-EntraIDUserFromEntraIDGroup"
                 scriptVariableName = "removeEntraIDUserFromEntraIDGroupScript" # use variable name as string reference to avoid cluttering configuration with script content
-                runInCloud         = $false
+                runInCloud         = $true
                 agentPoolName      = "" # If left empty, uses default agent pool
             }
         )
@@ -413,7 +413,7 @@ function New-HelloIDProductConfiguration {
             # [PSCustomObject]@{
             #     name               = "ActionName"
             #     scriptVariableName = "actionScriptVariableName" # use variable name as string reference to avoid cluttering configuration with script content
-            #     runInCloud         = $false
+            #     runInCloud         = $true
             #     agentPoolName      = "" # If left empty, uses default agent pool
             # }
         )
