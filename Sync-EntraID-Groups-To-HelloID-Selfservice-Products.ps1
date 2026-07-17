@@ -1605,7 +1605,7 @@ function Get-MSEntraCertificate {
 #endregion functions
 
 #region script
-Write-StatusMessage -Event Information -Message "Starting synchronization of Exchange Online Shared Mailboxes to HelloID Self service Products"
+Write-StatusMessage -Event Information -Message "Starting synchronization of Entra ID Groups to HelloID Self service Products"
 
 # Validate Calculated mode configuration
 if ($resourceOwnerMode -eq "Calculated") {
