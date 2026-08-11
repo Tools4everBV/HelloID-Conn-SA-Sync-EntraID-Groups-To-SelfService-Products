@@ -8,7 +8,6 @@
 >
 > If a higher frequency is required for your organization, please contact **Tools4ever Support**. This helps us understand your use case and provide proper guidance.
 
-<<<<<<< HEAD
 > [!IMPORTANT]
 > This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.
 
@@ -31,11 +30,6 @@
 > 4. Migrate your configuration according to the new structure
 > 
 > See [Configuration options](#configuration-options) below for the new configuration structure.
-=======
-| :information_source: Information                                                                                                                                                                                                                                                                                                                                                       |
-| :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements. |
->>>>>>> origin/main
 
 ## Table of Contents
 
@@ -56,6 +50,7 @@
       - [Product Configuration](#product-configuration)
       - [Resource Owner Configuration](#resource-owner-configuration)
       - [Update Behavior](#update-behavior)
+    - [Synchronization settings](#synchronization-settings)
   - [Remarks](#remarks)
     - [Products are created and removed automatically](#products-are-created-and-removed-automatically)
     - [Function-based product configuration](#function-based-product-configuration)
@@ -108,7 +103,6 @@ Once you have completed the Microsoft setup and followed their best practices, c
 - Upload the public key file (.cer) in Entra ID
 - Provide the certificate as a Base64 string in HelloID
 
-<<<<<<< HEAD
 > [!NOTE]
 > For more information about the required permissions, please see the Microsoft docs:
 > - [Microsoft Graph permissions reference](https://learn.microsoft.com/en-us/graph/permissions-reference)
