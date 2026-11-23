@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [4.0.2] - 2026-11-23
+
+### Fixed
+
+- **Form Validation**: The check that the configured `FormId` exists in HelloID now runs; it previously referenced a non-existent variable and was never executed.
+- **Withdrawn Actions Preserved**: Fixed `onWithdraw` to `onWithdrawn` in the action preservation lists, so Withdrawn actions are no longer lost on product updates.
+- **Resource Owner Group Removal**: Groups are now only removed in `Calculated` mode, only for `Local/*` groups and only when a group id is present. Previously the shared group in `Fixed` mode could be deleted.
+- **Thresholds**: Create, update and remove thresholds now block only when the count exceeds the threshold (`-gt` instead of `-ge`).
+- **Resource Owner Group Rename**: A missing source object now only skips the rename instead of skipping the entire product update.
+
 ## [4.0.1] - 2026-08-11
 
 ### Fixed

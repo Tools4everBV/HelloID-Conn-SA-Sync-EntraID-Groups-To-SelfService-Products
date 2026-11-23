@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-SA-Sync-EntraID-Groups-To-Products
 #
-# Version: 4.0.1
+# Version: 4.0.2
 #####################################################
 $VerbosePreference = "SilentlyContinue"
 $informationPreference = "Continue"
@@ -1773,19 +1773,6 @@ try {
     $helloIDSelfServiceProductsInScopeGrouped = $helloIDSelfServiceProductsInScope | Group-Object -Property "code" -AsHashTable -AsString
     Write-StatusMessage -Event Success -Message "Successfully queried Self service products from HelloID (after filtering for products with specified SKU prefix). Result count: $(($helloIDSelfServiceProductsInScope | Measure-Object).Count)"
 
-    # Validate Form exists if specified
-    if (-not [string]::IsNullOrEmpty($productFormId)) {
-        $actionMessage = "validating form with ID [$productFormId] exists in HelloID"
-        $getHelloIDFormSplatParams = @{
-            Uri       = "$($helloIDPortalBaseUrl)/api/v1/forms/$($productFormId)"
-            Method    = 'GET'
-            Headers   = $helloIDHeaders
-            UsePaging = $false
-        }
-        $formCheck = Invoke-HelloIDRestMethod @getHelloIDFormSplatParams
-        Write-StatusMessage -Event Success -Message "Validated: Form [$($formCheck.name)] exists in HelloID (ID: $productFormId)"
-    }
-
     # Get HelloID groups
     $actionMessage = "querying groups from HelloID"
     $getHelloIDGroupsSplatParams = @{
@@ -1857,6 +1844,20 @@ try {
         SourceObjectUniqueProperty = $sourceObjectUniqueProperty
     }
     $sampleProductConfig = New-HelloIDProductConfiguration @sampleProductConfigSplatParams
+
+    # Validate Form exists if specified
+    $productFormId = $sampleProductConfig.FormId
+    if (-not [string]::IsNullOrEmpty($productFormId)) {
+        $actionMessage = "validating form with ID [$productFormId] exists in HelloID"
+        $getHelloIDFormSplatParams = @{
+            Uri       = "$($helloIDPortalBaseUrl)/api/v1/forms/$($productFormId)"
+            Method    = 'GET'
+            Headers   = $helloIDHeaders
+            UsePaging = $false
+        }
+        $formCheck = Invoke-HelloIDRestMethod @getHelloIDFormSplatParams
+        Write-StatusMessage -Event Success -Message "Validated: Form [$($formCheck.name)] exists in HelloID (ID: $productFormId)"
+    }
 
     # Validate/create category
     $actionMessage = "validating category [$($sampleProductConfig.Category)]"
@@ -2884,7 +2885,7 @@ try {
                             }
                             
                             # Preserve action types that are NOT in the configuration
-                            $actionProperties = @('onRequest', 'onApprove', 'onDeny', 'onReturn', 'onWithdraw')
+                            $actionProperties = @('onRequest', 'onApprove', 'onDeny', 'onReturn', 'onWithdrawn')
                             foreach ($actionProperty in $actionProperties) {
                                 if ($actionProperty -notin $actionsToUpdate.Keys) {
                                     # Keep existing actions for this type as-is
@@ -2925,7 +2926,7 @@ try {
                             $currentProductInHelloID = $fullProductDetailsCache[$existingProduct.Code]
                             
                             if ($null -ne $currentProductInHelloID) {
-                                $actionProperties = @('onRequest', 'onApprove', 'onDeny', 'onReturn', 'onWithdraw')
+                                $actionProperties = @('onRequest', 'onApprove', 'onDeny', 'onReturn', 'onWithdrawn')
                                 foreach ($actionProperty in $actionProperties) {
                                     if (($currentProductInHelloID.$actionProperty | Measure-Object).Count -gt 0) {
                                         $updateBody | Add-Member -MemberType NoteProperty -Name $actionProperty -Value $currentProductInHelloID.$actionProperty -Force
@@ -3035,7 +3036,7 @@ try {
     }
     
     # Check for resource owner group deletes (only when products will be removed)
-    if ($removeProductBehavior -eq "Remove" -and $removeResourceOwnerGroupWithProduct -eq $true -and ($obsoleteProducts | Measure-Object).Count -gt 0) {
+    if ($removeProductBehavior -eq "Remove" -and $removeResourceOwnerGroupWithProduct -eq $true -and $resourceOwnerMode -eq "Calculated" -and ($obsoleteProducts | Measure-Object).Count -gt 0) {
         foreach ($obsoleteProduct in $obsoleteProducts) {
             try {
                 # Check if product has a resource owner group
@@ -3059,7 +3060,7 @@ try {
     # Check if update threshold is exceeded based on products that actually need updates
     $updateThresholdExceeded = $false
     if (($overwriteExistingProduct -eq $true -or $overwriteExistingProductAction -eq $true -or $addMissingProductAction -eq $true -or $removeUnconfiguredActions -eq $true -or $accessGroupUpdateBehavior -ne "None") -and 
-        $null -ne $updateThreshold -and ($productsNeedingUpdate | Measure-Object).Count -ge $updateThreshold) {
+        $null -ne $updateThreshold -and ($productsNeedingUpdate | Measure-Object).Count -gt $updateThreshold) {
         $updateThresholdExceeded = $true
         if ($verboseLogging -eq $true) {
             Write-Verbose "Update threshold exceeded: Would update [$(($productsNeedingUpdate | Measure-Object).Count)] products (with actual changes), but threshold is set to [$updateThreshold]"
@@ -3310,7 +3311,7 @@ try {
     
     # Check if create threshold is exceeded
     $createThresholdExceeded = $false
-    if ($null -ne $createThreshold -and ($newProducts | Measure-Object).Count -ge $createThreshold) {
+    if ($null -ne $createThreshold -and ($newProducts | Measure-Object).Count -gt $createThreshold) {
         $createThresholdExceeded = $true
         if ($verboseLogging -eq $true) {
             Write-Verbose "Create threshold exceeded: Would create [$(($newProducts | Measure-Object).Count)] products, but threshold is set to [$createThreshold]"
@@ -3465,7 +3466,7 @@ try {
 
     # Check if remove threshold is exceeded (only when removeProductBehavior is not 'None')
     $obsoleteProductThresholdExceeded = $false
-    if ($removeProductBehavior -ne "None" -and $null -ne $removeThreshold -and ($obsoleteProducts | Measure-Object).Count -ge $removeThreshold) {
+    if ($removeProductBehavior -ne "None" -and $null -ne $removeThreshold -and ($obsoleteProducts | Measure-Object).Count -gt $removeThreshold) {
         $obsoleteProductThresholdExceeded = $true
         if ($verboseLogging -eq $true) {
             Write-Verbose "Remove threshold exceeded: Would $($removeProductBehavior) [$(($obsoleteProducts | Measure-Object).Count)] products, but threshold is set to [$removeThreshold]"
@@ -3504,7 +3505,10 @@ try {
                         $productRemovesSuccess++
                         
                         # Remove resource owner group
-                        if ($removeResourceOwnerGroupWithProduct -eq $true) {
+                        # Only remove Local groups, and only in Calculated mode (Fixed mode shares one group between products)
+                        if ($removeResourceOwnerGroupWithProduct -eq $true -and $resourceOwnerMode -eq "Calculated" -and
+                            -not [string]::IsNullOrEmpty($obsoleteProduct.resourceOwnerGroup.id) -and
+                            $obsoleteProduct.resourceOwnerGroup.name -like "Local/*") {
                             $actionMessage = "removing resource owner group for product [$($obsoleteProduct.Name)]"
                             try {
                                 $deleteResourceOwnerGroupSplatParams = @{
@@ -3544,7 +3548,9 @@ try {
                     else {
                         if ($verboseLogging -eq $true) {
                             Write-Verbose "DryRun: Would remove HelloID Self service Product [$($obsoleteProduct.Name)]"
-                            if ($removeResourceOwnerGroupWithProduct -eq $true) {
+                            if ($removeResourceOwnerGroupWithProduct -eq $true -and $resourceOwnerMode -eq "Calculated" -and
+                                -not [string]::IsNullOrEmpty($obsoleteProduct.resourceOwnerGroup.id) -and
+                                $obsoleteProduct.resourceOwnerGroup.name -like "Local/*") {
                                 Write-Verbose "DryRun: Would also remove resource owner group [$($obsoleteProduct.resourceOwnerGroup.id)]"
                             }
                         }
@@ -3797,11 +3803,10 @@ try {
                                     if ($verboseLogging -eq $true) {
                                         Write-Verbose "Could not find corresponding source object for product [$($currentProductInHelloID.name)] - skipping resource owner group rename"
                                     }
-                                    continue
                                 }
                             
-                                # Check if the current group name differs from expected name
-                                if ($currentResourceOwnerGroup.name -ne $expectedResourceOwnerGroupName) {
+                                # Check if the current group name differs from expected name (only when a source object was found)
+                                if ($null -ne $correspondingSourceObject -and $currentResourceOwnerGroup.name -ne $expectedResourceOwnerGroupName) {
                                     $actionMessage = "renaming resource owner group from [$($currentResourceOwnerGroup.name)] to [$expectedResourceOwnerGroupName] for product [$($existingProduct.name)]"
                                     if ($verboseLogging -eq $true) {
                                         Write-Verbose "Resource owner group name changed from [$($currentResourceOwnerGroup.name)] to [$expectedResourceOwnerGroupName] for product [$($existingProduct.name)]"
